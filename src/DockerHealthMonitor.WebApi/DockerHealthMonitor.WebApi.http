@@ -1,0 +1,6 @@
+@DockerHealthMonitor.WebApi_HostAddress = http://localhost:5216
+
+GET {{DockerHealthMonitor.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
