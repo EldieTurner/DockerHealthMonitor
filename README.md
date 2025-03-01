@@ -1,77 +1,67 @@
 # Docker Health Monitor
 
-A lightweight, cross-platform .NET 6 minimal API that retrieves the health status of Docker containers running on your host machine. It leverages the Docker.DotNet library to inspect container details and returns either the container’s health (if defined) or its overall status.
-## Overview
+Docker Health Monitor is a lightweight, crossâ€‘platform API built with .NET 8 Minimal API that monitors the health of Docker containers running on your host machine. The application leverages the Docker.DotNet library to inspect container details and provides two primary endpoints: one for checking the health of a specific container and another for listing all containers.
 
-This project provides a simple HTTP API endpoint (/health/{containerName}) that:
-
-    Queries the Docker daemon to locate a container by its name.
-    Checks for a defined health check (via Docker's HEALTHCHECK instruction) and returns its status (e.g. "healthy", "unhealthy", or "starting").
-    Falls back to reporting the container’s overall status (such as "running" or "exited") when no health check is configured.
-    Includes exception handling with specific guidance for permission issues when accessing the Docker socket.
-
+You can view and pull the image from Docker Hub here:
+[eldieturner/dockerhealthmonitor](https://hub.docker.com/r/eldieturner/dockerhealthmonitor)
 ## Features
 
-    Health Check Reporting: Returns detailed health status if available.
-    Fallback Status: Provides container state information when no explicit health check exists.
-    Cross-Platform Support: Automatically detects the Docker daemon endpoint (using Unix sockets on Linux/macOS and named pipes on Windows).
-    Helpful Error Handling: Guides users to resolve common issues such as permission errors.
+    Container Health Inspection:
+    Query the health status of a specific container via /health/{containerName}. If a container is configured with a Docker HEALTHCHECK, its detailed health status (e.g. "healthy", "unhealthy", or "starting") is returned; otherwise, the overall container state (e.g., "running", "exited") is provided.
+
+    List All Containers:
+    Retrieve a simplified list of all containers on the host with key details such as ID, names, status, state, and image via the /containers endpoint.
+
+    Enhanced Logging:
+    Detailed logging is implemented throughout the API to trace requests, container lookup, and error handling, which aids in debugging issues like Docker socket permission errors.
+
+    Cross-Platform Support:
+    The API automatically detects the correct Docker daemon endpointâ€”using Unix sockets on Linux/macOS and named pipes on Windows.
 
 ## Prerequisites
 
     .NET 8 SDK
-    Docker installed and running on your host.
-    Permissions to access the Docker daemon. When running in a container, ensure you mount the Docker socket (e.g., /var/run/docker.sock).
+    Docker (with Docker Engine running)
+    Permissions to access the Docker daemon (mount /var/run/docker.sock for Linux/macOS or the named pipe for Windows)
 
-## Building and Running Locally
+## Installation & Usage
+### Running Locally
 
-Clone the repository:
+    Clone the Repository:
 ```
-git clone <repository-url>
+git clone https://github.com/eldieturner/DockerHealthMonitor.git
 cd DockerHealthMonitor
 ```
-Restore and Build the Application:
+Restore and Build:
 ```
 dotnet restore
 dotnet build
 ```
 Run the Application:
 ```
-dotnet run
+dotnet run --project src/DockerHealthMonitor.WebApi
 ```
-The API will start listening on the default URL (e.g., http://localhost:5000).
+The API will start listening on port 8080 (as configured in your Dockerfile and launch settings).
 
-## Running in a Docker Container
+## Endpoints
 
-```
-docker pull eldieturner/dockerhealthmonitor:latest
-```
-
-## API Usage
-
-### Endpoint
+### Health Check Endpoint
 ```
 GET /health/{containerName}
 ```
-Examples
-
-Checking Health of a Container with a Healthcheck Configured:
+Example:
 ```
-curl http://localhost:5000/health/portainer
+curl http://localhost:8080/health/portainer
 ```
-Possible Response:
+Response when a HEALTHCHECK is defined:
 ```
 {
   "Container": "portainer",
   "HealthStatus": "healthy",
-  "Details": {
-    "Status": "healthy",
-    "FailingStreak": 0,
-    "Log": [ ... ]
-  }
+  "Details": { ... }
 }
 ```
-Checking Health of a Container Without a Healthcheck:
+Response if no explicit health check is configured:
 ```
 {
   "Container": "portainer",
@@ -79,24 +69,72 @@ Checking Health of a Container Without a Healthcheck:
   "Message": "No explicit health check configured for this container."
 }
 ```
-Container Not Found:
+### List All Containers Endpoint
 ```
-{
-    "message": "Container 'portainer' not found."
-}
+GET /containers
+```
+Example:
+```
+curl http://localhost:8080/containers
+```
+Response:
+```
+[
+  {
+    "ID": "abc123...",
+    "Names": ["/portainer", "/someothercontainer"],
+    "Status": "Up 2 hours",
+    "State": "running",
+    "Image": "your-image"
+  },
+  ...
+]
+```
+## Running with Docker
+### Docker Run
+
+To run the API in a container, ensure the Docker socket is mounted:
+```
+docker run -d -p 8080:80 -v /var/run/docker.sock:/var/run/docker.sock eldieturner/dockerhealthmonitor:latest
+```
+### Docker Compose
+
+Create a docker-compose.yml file (if you havenâ€™t already) with the following content:
+```
+version: '3.8'
+services:
+  dockerhealthmonitor:
+    image: eldieturner/dockerhealthmonitor:latest
+    container_name: dockerhealthmonitor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+```
+Then run:
+```
+docker-compose up -d dockerhealthmonitor
 ```
 
-## Troubleshooting Permissions
+Build & Deployment
+Multi-Architecture Build
 
-If you receive a "Permission Denied" error when accessing /var/run/docker.sock, consider the following:
+The project uses Docker Buildx to build multi-architecture images for both linux/amd64 and linux/arm64. To build and push the image:
 
-    Running as Root: Running the container as root (e.g., using user: "0:0" in your docker-compose file) will bypass permission issues.
-    Adding the User to the Docker Group: If you run containers with a non-root user (e.g., UID 1000:1000), ensure that the user is in the host’s Docker group or has equivalent permissions.
-    Adjusting Socket Permissions: For development purposes only, you might change the Docker socket permissions using chmod 666 /var/run/docker.sock on your host. (Not recommended for production.)
+docker buildx build --platform linux/arm64,linux/amd64 -t eldieturner/dockerhealthmonitor:latest --push -f src/DockerHealthMonitor.WebApi/Dockerfile .
 
+Dockerfile Overview
+
+Your Dockerfile performs the following:
+
+    Uses multi-stage builds to restore, build, and publish the .NET application.
+    Sets the working directory to /app and exposes ports 8080 and 8081.
+    Copies the published output into the final runtime image.
+
+For details, see the Dockerfile.
 Contributing
 
-Contributions are welcome! Please fork the repository and submit pull requests. For major changes, please open an issue first to discuss what you would like to change.
+Contributions are welcome! Please fork the repository and create a pull request with your improvements or bug fixes. For major changes, open an issue first to discuss what youâ€™d like to change.
 License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
