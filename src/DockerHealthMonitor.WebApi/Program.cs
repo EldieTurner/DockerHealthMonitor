@@ -41,14 +41,14 @@ app.MapGet("/health/{containerName}", async (string containerName) =>
             return Results.Ok(new
             {
                 Container = containerName,
-                Status = containerDetails.State.Status,  // e.g., "running", "exited", etc.
+                containerDetails.State.Status,  // e.g., "running", "exited", etc.
                 Message = "No explicit health check configured for this container."
             });
         }
     }
     catch (HttpRequestException ex)
     {
-        if ((ex.InnerException as SocketException)?.SocketErrorCode == SocketError.AccessDenied)
+        if (ex.InnerException is SocketException { SocketErrorCode: SocketError.AccessDenied })
         {
             return Results.Problem(" It appears that the application does not have permission to access the Docker socket. " +
                 "Ensure that the container's user has read/write access to /var/run/docker.sock. " +
@@ -62,6 +62,28 @@ app.MapGet("/health/{containerName}", async (string containerName) =>
     catch (Exception ex)
     {
         return Results.Problem($"Error retrieving container health: {ex.Message}");
+    }
+});
+
+// Endpoint to list all containers
+app.MapGet("/containers", async () =>
+{
+    try
+    {
+        using var dockerClient = new DockerClientConfiguration(new Uri(dockerUri)).CreateClient();
+        var containers = await dockerClient.Containers.ListContainersAsync(
+            new ContainersListParameters { All = true });
+        return Results.Ok(containers.Select(c => new
+        {
+            c.ID,
+            c.Names,
+            c.State,
+            c.Status
+        }));
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Error retrieving containers: {ex.Message}");
     }
 });
 
