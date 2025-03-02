@@ -1,21 +1,27 @@
-
 using DockerHealthMonitor.WebApi.Services;
 
-namespace DockerHealthMonitor.WebApi
+namespace DockerHealthMonitor.WebApi;
+
+public class Program
 {
-    public class Program
+    public static void Main(string[] args)
     {
-        public static void Main(string[] args)
+        try
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Logging.ClearProviders().AddConsole().SetMinimumLevel(LogLevel.Information);
+            // Configure logging: clear default providers and add Console logging.
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole();
+            builder.Logging.SetMinimumLevel(LogLevel.Information);
 
             // Add services to the container.
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            // Register health checks so the app can report health status.
+            builder.Services.AddHealthChecks();
 
             // Register DockerService for DI.
             builder.Services.AddSingleton<IDockerService, DockerService>();
@@ -30,13 +36,26 @@ namespace DockerHealthMonitor.WebApi
             }
 
             app.UseHttpsRedirection();
-
             app.UseAuthorization();
 
-
+            // Map controllers.
             app.MapControllers();
 
+            // Map a health check endpoint at /health.
+            app.MapHealthChecks("/health");
+
             app.Run();
+        }
+        catch (Exception ex)
+        {
+            // If there's an error during startup, log it as a critical error.
+            using var loggerFactory = LoggerFactory.Create(config =>
+            {
+                config.AddConsole();
+            });
+            var logger = loggerFactory.CreateLogger<Program>();
+            logger.LogCritical(ex, "Application startup failed.");
+            throw;
         }
     }
 }
