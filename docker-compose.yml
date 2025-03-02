@@ -1,0 +1,6 @@
+services:
+  dockerhealthmonitor.webapi:
+    image: ${DOCKER_REGISTRY-}dockerhealthmonitorwebapi
+    build:
+      context: DockerHealthMonitor.WebApi
+      dockerfile: Dockerfile

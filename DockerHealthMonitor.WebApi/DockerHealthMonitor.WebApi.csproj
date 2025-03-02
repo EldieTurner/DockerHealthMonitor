@@ -4,14 +4,15 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>2fd4b8a1-9638-4c08-9d0f-ccacc1059966</UserSecretsId>
+    <UserSecretsId>9aa5aac3-1851-4599-be28-03add7fd4d53</UserSecretsId>
+		<DockerfileContext>.</DockerfileContext>
+		<DockerfileRunArguments>--user 0 -v "/var/run/docker.sock:/var/run/docker.sock"</DockerfileRunArguments>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Docker.DotNet" Version="3.125.15" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.12" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>

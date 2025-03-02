@@ -12,10 +12,10 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["DockerHealthMonitor.WebApi/DockerHealthMonitor.WebApi.csproj", "DockerHealthMonitor.WebApi/"]
-RUN dotnet restore "./DockerHealthMonitor.WebApi/DockerHealthMonitor.WebApi.csproj"
+COPY ["DockerHealthMonitor.WebApi.csproj", "."]
+RUN dotnet restore "./DockerHealthMonitor.WebApi.csproj"
 COPY . .
-WORKDIR "/src/DockerHealthMonitor.WebApi"
+WORKDIR "/src/."
 RUN dotnet build "./DockerHealthMonitor.WebApi.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage

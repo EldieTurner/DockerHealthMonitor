@@ -4,7 +4,7 @@
     <ProjectVersion>2.1</ProjectVersion>
     <DockerTargetOS>Linux</DockerTargetOS>
     <DockerPublishLocally>False</DockerPublishLocally>
-    <ProjectGuid>7001124b-eb3e-4441-8504-8be4239621c1</ProjectGuid>
+    <ProjectGuid>694b2507-d1ee-445b-a9c8-75c7f434f899</ProjectGuid>
     <DockerLaunchAction>LaunchBrowser</DockerLaunchAction>
     <DockerServiceUrl>{Scheme}://localhost:{ServicePort}/swagger</DockerServiceUrl>
     <DockerServiceName>dockerhealthmonitor.webapi</DockerServiceName>
