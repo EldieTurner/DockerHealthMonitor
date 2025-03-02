@@ -1,140 +1,152 @@
-# Docker Health Monitor
 
-Docker Health Monitor is a lightweight, cross‑platform API built with .NET 8 Minimal API that monitors the health of Docker containers running on your host machine. The application leverages the Docker.DotNet library to inspect container details and provides two primary endpoints: one for checking the health of a specific container and another for listing all containers.
+# DockerHealthMonitor
 
-You can view and pull the image from Docker Hub here:
-[eldieturner/dockerhealthmonitor](https://hub.docker.com/r/eldieturner/dockerhealthmonitor)
+DockerHealthMonitor is a .NET 8.0 Web API that inspects and monitors Docker containers on the host. The API is containerized, supports multi-architecture (x64 and ARM64), and provides endpoints to retrieve container details and health status. It also integrates health checks to report the overall application status.
+
 ## Features
 
-    Container Health Inspection:
-    Query the health status of a specific container via /health/{containerName}. If a container is configured with a Docker HEALTHCHECK, its detailed health status (e.g. "healthy", "unhealthy", or "starting") is returned; otherwise, the overall container state (e.g., "running", "exited") is provided.
+- **Multi-Architecture Support:**  
+  Build and run on both x64 and ARM64 systems (e.g., Intel-based systems and Raspberry Pi).
 
-    List All Containers:
-    Retrieve a simplified list of all containers on the host with key details such as ID, names, status, state, and image via the /containers endpoint.
+- **Container Inspection:**  
+  - **GET `/containers`**: Lists all Docker containers on the host, including their ID, name, state, and (if available) health status.
+  - **GET `/health/{containerName}`**: Returns detailed health information for the specified container.
 
-    Enhanced Logging:
-    Detailed logging is implemented throughout the API to trace requests, container lookup, and error handling, which aids in debugging issues like Docker socket permission errors.
+- **Application Health Checks:**  
+  The API registers a health endpoint (`/health`) that Docker can use to monitor the app's health.
 
-    Cross-Platform Support:
-    The API automatically detects the correct Docker daemon endpoint—using Unix sockets on Linux/macOS and named pipes on Windows.
+- **Swagger/OpenAPI Documentation:**  
+  Interactive API documentation is available via Swagger.
 
-## Prerequisites
-
-    .NET 8 SDK
-    Docker (with Docker Engine running)
-    Permissions to access the Docker daemon (mount /var/run/docker.sock for Linux/macOS or the named pipe for Windows)
-
-## Installation & Usage
-### Running Locally
-
-    Clone the Repository:
-```
-git clone https://github.com/eldieturner/DockerHealthMonitor.git
-cd DockerHealthMonitor
-```
-Restore and Build:
-```
-dotnet restore
-dotnet build
-```
-Run the Application:
-```
-dotnet run --project src/DockerHealthMonitor.WebApi
-```
-The API will start listening on port 8080 (as configured in your Dockerfile and launch settings).
+- **Logging:**  
+  Console logging is configured to capture startup events and critical errors.
 
 ## Endpoints
 
-### Health Check Endpoint
-```
-GET /health/{containerName}
-```
-Example:
-```
-curl http://localhost:8080/health/portainer
-```
-Response when a HEALTHCHECK is defined:
-```
+### GET `/containers`
+
+Returns a list of all Docker containers on the host with key details:
+- **Id**
+- **Name**
+- **State**
+- **HealthStatus** (if available)
+
+### GET `/health/{containerName}`
+
+Returns the health status (or running status, if health information is not available) of a specified container. The response structure is similar to:
+
+```json
 {
-  "Container": "portainer",
-  "HealthStatus": "healthy",
+  "Container": "containerName",
+  "HealthStatus": "healthy", 
   "Details": { ... }
 }
 ```
-Response if no explicit health check is configured:
-```
-{
-  "Container": "portainer",
-  "Status": "running",
-  "Message": "No explicit health check configured for this container."
-}
-```
-### List All Containers Endpoint
-```
-GET /containers
-```
-Example:
-```
-curl http://localhost:8080/containers
-```
-Response:
-```
-[
-  {
-    "ID": "abc123...",
-    "Names": ["/portainer", "/someothercontainer"],
-    "Status": "Up 2 hours",
-    "State": "running",
-    "Image": "your-image"
-  },
-  ...
-]
-```
-## Running with Docker
-### Docker Run
 
-To run the API in a container, ensure the Docker socket is mounted:
-```
-docker run -d -p 8080:80 -v /var/run/docker.sock:/var/run/docker.sock eldieturner/dockerhealthmonitor:latest
-```
-### Docker Compose
+### GET `/health`
 
-Create a docker-compose.yml file (if you haven’t already) with the following content:
+Returns the overall health status of the application. Docker can use this endpoint to monitor the container's health.
+
+## Prerequisites
+
+- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [Docker](https://www.docker.com/get-started)
+- [Docker Compose](https://docs.docker.com/compose/)
+- (Optional) [Docker Buildx](https://docs.docker.com/buildx/working-with-buildx/) for multi-architecture builds
+
+## Building and Running
+
+### Running Locally
+
+1. **Clone the repository:**
+
+   ```bash
+   git clone https://github.com/yourusername/DockerHealthMonitor.git
+   cd DockerHealthMonitor/DockerHealthMonitor.WebApi
+   ```
+
+2. **Run the API locally:**
+
+   ```bash
+   dotnet run
+   ```
+
+3. **Access Swagger:**  
+   Open your browser and navigate to `http://localhost:5000/swagger` (or the port configured).
+
+### Docker Build and Run
+
+The project is containerized with a multi-stage Dockerfile.
+
+#### Building a Multi-Architecture Image
+
+Use Docker Buildx to build and push the image for both ARM64 and x64:
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 -t eldieturner/dockerhealthmonitor:latest --push .
 ```
+
+This command builds the image for both architectures and pushes it to Docker Hub under the `eldieturner/dockerhealthmonitor:latest` tag.
+
+#### Running the Container with Docker Run
+
+Ensure you mount the Docker socket if you need to inspect host containers:
+
+```bash
+docker run -d -p 8080:8080 -p 8081:8081 -v /var/run/docker.sock:/var/run/docker.sock eldieturner/dockerhealthmonitor:latest
+```
+
+- **Port Mapping:**  
+  The container exposes port `8080` (HTTP) and `8081` (HTTPS). Adjust the ports as needed.
+
+- **Health Check in Docker:**  
+  The application exposes a `/health` endpoint.
+
+## Docker Compose
+
+You can use a `docker-compose.yml` file to manage the container. Below is an example that includes a Docker healthcheck:
+
+```yaml
 version: '3.8'
+
 services:
   dockerhealthmonitor:
     image: eldieturner/dockerhealthmonitor:latest
-    container_name: dockerhealthmonitor
     ports:
-      - "8080:8080"
+      - "8010:8080"    # HTTP
+      - "8011:8081"    # HTTPS
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 ```
-Then run:
+
+### Running with Docker Compose
+
+Start the container using:
+
+```bash
+docker-compose up -d
 ```
-docker-compose up -d dockerhealthmonitor
+
+To view the health status, run:
+
+```bash
+docker ps
 ```
 
-Build & Deployment
-Multi-Architecture Build
+Docker will display the container’s health status as reported by the `/health` endpoint.
 
-The project uses Docker Buildx to build multi-architecture images for both linux/amd64 and linux/arm64. To build and push the image:
+## Logging and Error Reporting
 
-docker buildx build --platform linux/arm64,linux/amd64 -t eldieturner/dockerhealthmonitor:latest --push -f src/DockerHealthMonitor.WebApi/Dockerfile .
+- Startup and runtime events are logged to the console.
+- Critical errors during startup are caught and logged.
+- Health endpoints provide a mechanism for both the app and Docker to report if any issues occur.
 
-Dockerfile Overview
+## License
 
-Your Dockerfile performs the following:
-
-    Uses multi-stage builds to restore, build, and publish the .NET application.
-    Sets the working directory to /app and exposes ports 8080 and 8081.
-    Copies the published output into the final runtime image.
-
-For details, see the Dockerfile.
-Contributing
-
-Contributions are welcome! Please fork the repository and create a pull request with your improvements or bug fixes. For major changes, open an issue first to discuss what you’d like to change.
-License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
+[MIT License](LICENSE)
