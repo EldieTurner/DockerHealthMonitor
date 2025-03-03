@@ -78,16 +78,6 @@ Returns the overall health status of the application. Docker can use this endpoi
 
 The project is containerized with a multi-stage Dockerfile.
 
-#### Building a Multi-Architecture Image
-
-Use Docker Buildx to build and push the image for both ARM64 and x64:
-
-```bash
-docker buildx build --platform linux/amd64,linux/arm64 -t eldieturner/dockerhealthmonitor:latest --push .
-```
-
-This command builds the image for both architectures and pushes it to Docker Hub under the `eldieturner/dockerhealthmonitor:latest` tag.
-
 #### Running the Container with Docker Run
 
 Ensure you mount the Docker socket if you need to inspect host containers:
