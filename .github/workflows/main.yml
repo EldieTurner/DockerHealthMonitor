@@ -10,47 +10,65 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the repository code
+      # Check out the repository code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Set up .NET 8 SDK and restore dependencies using the correct project path
+      # Enable extra debug logging (if your secrets are set)
+      - name: Enable Debug Logging
+        run: |
+          echo "::debug::Debug logging enabled"
+          echo "ACTIONS_RUNNER_DEBUG=${{ secrets.ACTIONS_RUNNER_DEBUG }}"
+          echo "ACTIONS_STEP_DEBUG=${{ secrets.ACTIONS_STEP_DEBUG }}"
+        shell: bash
+        
+      # Log current directory structure for debugging
+      - name: List Repository Files
+        run: |
+          echo "::debug::Listing directory contents:"
+          ls -la
+      
+      # Set up the .NET 8 SDK to build the project
       - name: Setup .NET 8 SDK
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '8.0.x'
       
-      - name: Restore dependencies
+      # Restore NuGet packages
+      - name: Restore Dependencies
         run: |
           set -euxo pipefail
+          echo "::debug::Restoring dependencies for DockerHealthMonitor.WebApi.csproj"
           dotnet restore ./DockerHealthMonitor.WebApi.csproj
 
-      - name: Build the project
+      # Build the project with strict mode and extra logging
+      - name: Build Project
         run: |
           set -euxo pipefail
+          echo "::debug::Building the project in Release mode"
           dotnet build ./DockerHealthMonitor.WebApi.csproj --configuration Release --no-restore
 
       # Set up Docker Buildx for multi-architecture builds
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Log in to Docker Hub; ensure DOCKERHUB_USERNAME and DOCKERHUB_TOKEN are set in repo secrets
+      # Log in to Docker Hub; ensure you have DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets configured
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build and push the Docker image using the updated Dockerfile path
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: eldieturner/dockerhealthmonitor:latest
+      # Build and push the Docker image with extra logging
+      - name: Build and Push Docker Image
+        run: |
+          set -euxo pipefail
+          echo "::debug::Starting Docker Buildx build..."
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t eldieturner/dockerhealthmonitor:latest \
+            --push .
 
-      # Final step to confirm success
+      # Verify build exit status (this step is optional and only echoes a success message)
       - name: Verify build exit status
         run: echo "Build and push completed successfully."
