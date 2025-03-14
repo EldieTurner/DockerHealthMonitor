@@ -34,19 +34,19 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       
-      # Restore NuGet packages
+      # Restore dependencies using the project file in DockerHealthMonitor.WebApi/
       - name: Restore Dependencies
         run: |
           set -euxo pipefail
-          echo "::debug::Restoring dependencies for DockerHealthMonitor.WebApi.csproj"
-          dotnet restore ./DockerHealthMonitor.WebApi.csproj
+          echo "::debug::Restoring dependencies from DockerHealthMonitor.WebApi/DockerHealthMonitor.WebApi.csproj"
+          dotnet restore ./DockerHealthMonitor.WebApi/DockerHealthMonitor.WebApi.csproj
 
       # Build the project with strict mode and extra logging
       - name: Build Project
         run: |
           set -euxo pipefail
           echo "::debug::Building the project in Release mode"
-          dotnet build ./DockerHealthMonitor.WebApi.csproj --configuration Release --no-restore
+          dotnet build ./DockerHealthMonitor.WebApi/DockerHealthMonitor.WebApi.csproj --configuration Release --no-restore
 
       # Set up Docker Buildx for multi-architecture builds
       - name: Set up Docker Buildx
@@ -59,15 +59,17 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build and push the Docker image with extra logging
+      # Build and push the Docker image using the Dockerfile from DockerHealthMonitor.WebApi/
       - name: Build and Push Docker Image
         run: |
           set -euxo pipefail
-          echo "::debug::Starting Docker Buildx build..."
+          echo "::debug::Building Docker image using Dockerfile in DockerHealthMonitor.WebApi/"
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
+            -f ./DockerHealthMonitor.WebApi/Dockerfile \
             -t eldieturner/dockerhealthmonitor:latest \
-            --push .
+            --push \
+            ./DockerHealthMonitor.WebApi
 
       # Verify build exit status (this step is optional and only echoes a success message)
       - name: Verify build exit status
