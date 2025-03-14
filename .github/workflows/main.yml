@@ -10,49 +10,47 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Check out the repository code
+      # Checkout the repository code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Set up the .NET 8 SDK to build the project
+      # Set up .NET 8 SDK and restore dependencies using the correct project path
       - name: Setup .NET 8 SDK
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '8.0.x'
       
-      # Restore NuGet packages
       - name: Restore dependencies
         run: |
           set -euxo pipefail
-          dotnet restore ./DockerHealthMonitor.WebApi/DockerHealthMonitor.WebApi.csproj
+          dotnet restore ./DockerHealthMonitor.WebApi.csproj
 
-      # Build the project with strict shell options
       - name: Build the project
         run: |
           set -euxo pipefail
-          dotnet build ./DockerHealthMonitor.WebApi/DockerHealthMonitor.WebApi.csproj --configuration Release --no-restore
+          dotnet build ./DockerHealthMonitor.WebApi.csproj --configuration Release --no-restore
 
       # Set up Docker Buildx for multi-architecture builds
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Log in to Docker Hub; ensure you have DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets configured
+      # Log in to Docker Hub; ensure DOCKERHUB_USERNAME and DOCKERHUB_TOKEN are set in repo secrets
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build and push the Docker image for both linux/amd64 and linux/arm64
+      # Build and push the Docker image using the updated Dockerfile path
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./DockerHealthMonitor.WebApi/Dockerfile
+          file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: eldieturner/dockerhealthmonitor:latest
 
-      # Verify build exit status (this step is optional and only echoes a success message)
+      # Final step to confirm success
       - name: Verify build exit status
         run: echo "Build and push completed successfully."
