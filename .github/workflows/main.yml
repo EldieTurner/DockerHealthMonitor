@@ -24,13 +24,13 @@ jobs:
       - name: Restore dependencies
         run: |
           set -euxo pipefail
-          dotnet restore ./src/DockerHealthMonitor.WebApi/DockerHealthMonitor.WebApi.csproj
+          dotnet restore ./DockerHealthMonitor.WebApi/DockerHealthMonitor.WebApi.csproj
 
       # Build the project with strict shell options
       - name: Build the project
         run: |
           set -euxo pipefail
-          dotnet build ./src/DockerHealthMonitor.WebApi/DockerHealthMonitor.WebApi.csproj --configuration Release --no-restore
+          dotnet build ./DockerHealthMonitor.WebApi/DockerHealthMonitor.WebApi.csproj --configuration Release --no-restore
 
       # Set up Docker Buildx for multi-architecture builds
       - name: Set up Docker Buildx
@@ -48,7 +48,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./src/DockerHealthMonitor.WebApi/Dockerfile
+          file: ./DockerHealthMonitor.WebApi/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: eldieturner/dockerhealthmonitor:latest
