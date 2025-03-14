@@ -1,0 +1,49 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up the .NET 8 SDK and compile the project to catch build errors early.
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Restore dependencies
+        run: dotnet restore ./src/DockerHealthMonitor.WebApi/DockerHealthMonitor.WebApi.csproj
+
+      - name: Build the project
+        run: dotnet build ./src/DockerHealthMonitor.WebApi/DockerHealthMonitor.WebApi.csproj --configuration Release --no-restore
+
+      # Set up Docker Buildx for multi‑architecture builds.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Log in to Docker Hub. Make sure to add DOCKERHUB_USERNAME and DOCKERHUB_TOKEN
+      # as repository secrets in your GitHub repo settings.
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Build and push the Docker image.
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./src/DockerHealthMonitor.WebApi/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: eldieturner/dockerhealthmonitor:latest
