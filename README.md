@@ -1,6 +1,8 @@
 
 # DockerHealthMonitor
 
+[![Build and Push Docker Image](https://github.com/EldieTurner/DockerHealthMonitor/actions/workflows/main.yml/badge.svg)](https://github.com/EldieTurner/DockerHealthMonitor/actions/workflows/main.yml)
+
 DockerHealthMonitor is a .NET 8.0 Web API that inspects and monitors Docker containers on the host. The API is containerized, supports multi-architecture (x64 and ARM64), and provides endpoints to retrieve container details and health status. It also integrates health checks to report the overall application status.
 
 ## Features
